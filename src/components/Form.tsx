@@ -1,8 +1,97 @@
+import { useEffect, useState } from 'react';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { useAppDispatch } from '../app/hook';
+import { changeColor } from '../redux/colorSlice';
+
 export default function Form() {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [color, setColor] = useState('#1F2937');
+  const togglePasswordVisible = () => setPasswordVisible(!passwordVisible);
+  const dispatch = useAppDispatch();
+
+  const debounceValue = useDebounceValue(color);
+
+  function useDebounceValue(value: string, time = 100) {
+    const [debounceValue, setDebounceValue] = useState(value);
+
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        setDebounceValue(value);
+      }, time);
+
+      return () => {
+        clearTimeout(timeout);
+      };
+    }, [value, time]);
+
+    return debounceValue;
+  }
+
+  useEffect(() => {
+    // @ts-ignore
+    dispatch(changeColor(debounceValue));
+  }, [debounceValue, dispatch]);
+
   return (
     <form className="space-y-8 divide-y divide-gray-200">
       <div className="space-y-8 divide-y divide-gray-200 sm:space-y-5">
         <div className="space-y-6 sm:space-y-5">
+          <div>
+            <div>Hello</div>
+            <h3 className="text-lg font-medium leading-6 text-gray-900">Account information</h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              This information is necessary for you to be able to log in later.
+            </p>
+          </div>
+          <div className="space-y-6 sm:space-y-5">
+            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+                Username
+              </label>
+              <div className="mt-1 sm:col-span-2 sm:mt-0">
+                <div className="flex max-w-lg rounded-md shadow-sm">
+                  <input
+                    type="text"
+                    name="username"
+                    id="username"
+                    autoComplete="username"
+                    required
+                    className="block w-full min-w-0 flex-1  rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+                Password
+              </label>
+              <div className="mt-1 sm:col-span-2 sm:mt-0">
+                <div className="relative max-w-lg rounded-md shadow-sm">
+                  <input
+                    type={passwordVisible ? 'text' : 'password'}
+                    name="password"
+                    id="password"
+                    autoComplete="password"
+                    required
+                    className="block w-full min-w-0 flex-1 rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                  <div
+                    className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3"
+                    onClick={togglePasswordVisible}
+                  >
+                    {!passwordVisible ? (
+                      <EyeSlashIcon className="h-5 w-5 text-primary-900" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5 text-primary-900" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6 pt-8 sm:space-y-5 sm:pt-10">
           <div>
             <h3 className="text-lg font-medium leading-6 text-gray-900">Profile</h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
@@ -11,26 +100,6 @@ export default function Form() {
           </div>
 
           <div className="space-y-6 sm:space-y-5">
-            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Username
-              </label>
-              <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <div className="flex max-w-lg rounded-md shadow-sm">
-                  <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">
-                    workcation.com/
-                  </span>
-                  <input
-                    type="text"
-                    name="username"
-                    id="username"
-                    autoComplete="username"
-                    className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="about" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
                 About
@@ -46,9 +115,24 @@ export default function Form() {
                 <p className="mt-2 text-sm text-gray-500">Write a few sentences about yourself.</p>
               </div>
             </div>
-
             <div className="sm:grid sm:grid-cols-3 sm:items-center sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="photo" className="block text-sm font-medium text-gray-700">
+                Color preference
+              </label>
+              <div className="mt-1 sm:col-span-2 sm:mt-0">
+                <div className="flex items-center">
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="block rounded-full border-none shadow-sm h-8 w-8 "
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="sm:grid sm:grid-cols-3 sm:items-center sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="photo" className=" bg-[#4037bd]block text-sm font-medium text-gray-700">
                 Photo
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
