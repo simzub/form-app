@@ -2,13 +2,43 @@ import { useEffect, useState } from 'react';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAppDispatch } from '../app/hook';
 import { changeColor } from '../redux/colorSlice';
+import PhotoModal from './PhotoModal';
+import { useDropzone } from 'react-dropzone';
 
 export default function Form() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [color, setColor] = useState('#1F2937');
-  const togglePasswordVisible = () => setPasswordVisible(!passwordVisible);
+  const [photo, setPhoto] = useState('');
+  const [openModal, setOpenModal] = useState(false);
+  const [files, setFiles] = useState([]);
   const dispatch = useAppDispatch();
 
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: {
+      'image/png': ['.png'],
+      'image/jpg': ['.jpg'],
+      'image/jpeg': ['.jpeg'],
+    },
+    onDrop: (acceptedFiles: any) => {
+      setFiles(
+        acceptedFiles.map((file: any) =>
+          Object.assign(file, {
+            preview: URL.createObjectURL(file),
+          })
+        )
+      );
+    },
+  });
+
+  const coverPhoto = files.map((file: any) => (
+    <div key={Math.random()}>
+      <div>
+        <img src={file.preview} alt="preview" />
+      </div>
+    </div>
+  ));
+
+  const togglePasswordVisible = () => setPasswordVisible(!passwordVisible);
   const debounceValue = useDebounceValue(color);
 
   function useDebounceValue(value: string, time = 100) {
@@ -28,16 +58,15 @@ export default function Form() {
   }
 
   useEffect(() => {
-    // @ts-ignore
     dispatch(changeColor(debounceValue));
   }, [debounceValue, dispatch]);
 
   return (
     <form className="space-y-8 divide-y divide-gray-200">
       <div className="space-y-8 divide-y divide-gray-200 sm:space-y-5">
+        {openModal && <PhotoModal open={openModal} setOpen={setOpenModal} setPhoto={setPhoto} />}
         <div className="space-y-6 sm:space-y-5">
           <div>
-            <div>Hello</div>
             <h3 className="text-lg font-medium leading-6 text-gray-900">Account information</h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
               This information is necessary for you to be able to log in later.
@@ -121,12 +150,14 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <div className="flex items-center">
-                  <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="block rounded-full border-none shadow-sm h-8 w-8 "
-                  />
+                  <div className="inline-block relative h-12 w-12 overflow-hidden rounded-full">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="block absolute rounded-full -top-2 -right-2 border-none h-16 w-16 p-0 m-0"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -137,12 +168,17 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <div className="flex items-center">
-                  <span className="h-12 w-12 overflow-hidden rounded-full bg-gray-100">
-                    <svg className="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
+                  <span className="h-fit w-16 overflow-hidden rounded-full bg-gray-100">
+                    {photo ? (
+                      <img alt={`${photo}`} src={photo} />
+                    ) : (
+                      <svg className="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    )}
                   </span>
                   <button
+                    onClick={() => setOpenModal(true)}
                     type="button"
                     className="ml-5 rounded-md border border-gray-300 bg-white py-2 px-3 text-sm font-medium leading-4 text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   >
@@ -157,7 +193,10 @@ export default function Form() {
                 Cover photo
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <div className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6">
+                <div
+                  {...getRootProps}
+                  className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
+                >
                   <div className="space-y-1 text-center">
                     <svg
                       className="mx-auto h-12 w-12 text-gray-400"
@@ -179,11 +218,12 @@ export default function Form() {
                         className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500"
                       >
                         <span>Upload a file</span>
-                        <input id="file-upload" name="file-upload" type="file" className="sr-only" />
+                        <input {...getInputProps} id="file-upload" name="file-upload" type="file" className="sr-only" />
                       </label>
                       <p className="pl-1">or drag and drop</p>
+                      <div>{coverPhoto}</div>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 10MB</p>
                   </div>
                 </div>
               </div>
