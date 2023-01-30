@@ -3,40 +3,32 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAppDispatch } from '../app/hook';
 import { changeColor } from '../redux/colorSlice';
 import PhotoModal from './PhotoModal';
-import { useDropzone } from 'react-dropzone';
 
+import { Uploader } from 'uploader'; // Installed by "react-uploader".
+import { UploadDropzone } from 'react-uploader';
+
+export interface Country {
+  name: string;
+}
 export default function Form() {
+  const [data, setData] = useState<Country[]>([]);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [color, setColor] = useState('#1F2937');
   const [photo, setPhoto] = useState('');
   const [openModal, setOpenModal] = useState(false);
-  const [files, setFiles] = useState([]);
   const dispatch = useAppDispatch();
 
-  const { getRootProps, getInputProps } = useDropzone({
-    accept: {
-      'image/png': ['.png'],
-      'image/jpg': ['.jpg'],
-      'image/jpeg': ['.jpeg'],
-    },
-    onDrop: (acceptedFiles: any) => {
-      setFiles(
-        acceptedFiles.map((file: any) =>
-          Object.assign(file, {
-            preview: URL.createObjectURL(file),
-          })
-        )
-      );
-    },
+  const uploader = Uploader({
+    apiKey: 'free', // Get production API keys from Upload.io
   });
-
-  const coverPhoto = files.map((file: any) => (
-    <div key={Math.random()}>
-      <div>
-        <img src={file.preview} alt="preview" />
-      </div>
-    </div>
-  ));
+  const options = {
+    multi: false,
+    styles: {
+      fontSizes: {
+        base: 14,
+      },
+    },
+  };
 
   const togglePasswordVisible = () => setPasswordVisible(!passwordVisible);
   const debounceValue = useDebounceValue(color);
@@ -56,6 +48,15 @@ export default function Form() {
 
     return debounceValue;
   }
+
+  useEffect(() => {
+    const getData = async () => {
+      await fetch('https://restcountries.com/v2/all?fields=name')
+        .then((response) => response.json())
+        .then((data) => setData(data));
+    };
+    getData();
+  }, []);
 
   useEffect(() => {
     dispatch(changeColor(debounceValue));
@@ -192,41 +193,13 @@ export default function Form() {
               <label htmlFor="cover-photo" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
                 Cover photo
               </label>
-              <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <div
-                  {...getRootProps}
-                  className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
-                >
-                  <div className="space-y-1 text-center">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      stroke="currentColor"
-                      fill="none"
-                      viewBox="0 0 48 48"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="flex text-sm text-gray-600">
-                      <label
-                        htmlFor="file-upload"
-                        className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500"
-                      >
-                        <span>Upload a file</span>
-                        <input {...getInputProps} id="file-upload" name="file-upload" type="file" className="sr-only" />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                      <div>{coverPhoto}</div>
-                    </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 10MB</p>
-                  </div>
-                </div>
-              </div>
+              <UploadDropzone
+                uploader={uploader}
+                options={options}
+                onUpdate={(files) => console.log(files)}
+                width="200px"
+                height="200px"
+              />
             </div>
           </div>
         </div>
@@ -283,6 +256,35 @@ export default function Form() {
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+                Birthday
+              </label>
+              <div className="mt-1 sm:col-span-2 sm:mt-0">
+                <input
+                  id="birthday"
+                  name="birthday"
+                  type="date"
+                  className="block w-fill max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="first-name" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+                First name
+              </label>
+              <div className="mt-1 sm:col-span-2 sm:mt-0">
+                <input
+                  type="text"
+                  name="first-name"
+                  id="first-name"
+                  autoComplete="given-name"
+                  className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="country" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
                 Country
               </label>
@@ -293,9 +295,9 @@ export default function Form() {
                   autoComplete="country-name"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 >
-                  <option>United States</option>
-                  <option>Canada</option>
-                  <option>Mexico</option>
+                  {data.map((country) => (
+                    <option>{country.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
