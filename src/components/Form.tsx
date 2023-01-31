@@ -9,6 +9,7 @@ import { UploadDropzone } from 'react-uploader';
 
 export interface Country {
   name: string;
+  callingCodes: [string];
 }
 export default function Form() {
   const [data, setData] = useState<Country[]>([]);
@@ -16,6 +17,7 @@ export default function Form() {
   const [color, setColor] = useState('#1F2937');
   const [photo, setPhoto] = useState('');
   const [openModal, setOpenModal] = useState(false);
+  const [country, setCountry] = useState('Afghanistan');
   const dispatch = useAppDispatch();
 
   const uploader = Uploader({
@@ -51,7 +53,7 @@ export default function Form() {
 
   useEffect(() => {
     const getData = async () => {
-      await fetch('https://restcountries.com/v2/all?fields=name')
+      await fetch('https://restcountries.com/v2/all?fields=name,callingCodes')
         .then((response) => response.json())
         .then((data) => setData(data));
     };
@@ -61,6 +63,12 @@ export default function Form() {
   useEffect(() => {
     dispatch(changeColor(debounceValue));
   }, [debounceValue, dispatch]);
+
+  let callingCode = '';
+  const currentCountry = data.find((obj) => obj.name === country);
+  if (currentCountry) {
+    callingCode = currentCountry.callingCodes[0];
+  }
 
   return (
     <form className="space-y-8 divide-y divide-gray-200">
@@ -256,7 +264,7 @@ export default function Form() {
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+              <label htmlFor="birthday" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
                 Birthday
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
@@ -270,35 +278,41 @@ export default function Form() {
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
-              <label htmlFor="first-name" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                First name
-              </label>
-              <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <input
-                  type="text"
-                  name="first-name"
-                  id="first-name"
-                  autoComplete="given-name"
-                  className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="country" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
                 Country
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
                   id="country"
                   name="country"
                   autoComplete="country-name"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 >
                   {data.map((country) => (
-                    <option>{country.name}</option>
+                    <option key={country.name} value={country.name}>
+                      {country.name}
+                    </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+                Phone number
+              </label>
+              <div className="mt-1 sm:col-span-2 sm:mt-0 flex">
+                <div className=" bg-gray-300 w-12 flex justify-center items-center rounded-l-md border-gray-300 shadow-sm  sm:max-w-xs sm:text-sm">
+                  +{callingCode}
+                </div>
+                <input
+                  type="tel"
+                  name="phone"
+                  id="phone"
+                  className="block w-full max-w-lg rounded-r-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
+                />
               </div>
             </div>
 
