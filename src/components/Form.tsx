@@ -3,6 +3,9 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAppDispatch } from '../app/hook';
 import { changeColor } from '../redux/colorSlice';
 import PhotoModal from './PhotoModal';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 import { Uploader } from 'uploader'; // Installed by "react-uploader".
 import { UploadDropzone } from 'react-uploader';
@@ -11,6 +14,60 @@ export interface Country {
   name: string;
   callingCodes: [string];
 }
+
+// interface FormInput {
+//   username: string;
+//   password: string;
+//   profile: { about: string; color: string; photo: string; cover: string[] };
+//   personalInformation: {
+//     firstName: string;
+//     lastName: string;
+//     email: string;
+//     birthday: string;
+//     country: string;
+//     phone: string;
+//     url: string;
+//     streetAddress: string;
+//     city: string;
+//     region: string;
+//     postalCode: string;
+//   };
+//   notifications: {
+//     comments: string;
+//     candidates: string;
+//     offers: string;
+//     pushNotifications: string;
+//   };
+//   feedback: { rating: string; experience: string };
+// }
+
+const schema = z.object({
+  username: z.string().max(5),
+  password: z.string(),
+  about: z.string(),
+  color: z.string(),
+  photo: z.string(),
+  cover: z.array(z.string()),
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string().email(),
+  birthday: z.string(),
+  country: z.string(),
+  phone: z.string(),
+  url: z.string().url(),
+  streetAddress: z.string(),
+  city: z.string(),
+  region: z.string(),
+  postalCode: z.string(),
+  comments: z.boolean().optional(),
+  candidates: z.boolean().optional(),
+  offers: z.boolean().optional(),
+  pushNotifications: z.string(),
+  rating: z.string(),
+  experience: z.string(),
+});
+type FormData = z.infer<typeof schema>;
+
 export default function Form() {
   const [data, setData] = useState<Country[]>([]);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -19,6 +76,17 @@ export default function Form() {
   const [openModal, setOpenModal] = useState(false);
   const [country, setCountry] = useState('Afghanistan');
   const dispatch = useAppDispatch();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
+  const onSubmit: SubmitHandler<FormData> = (data) => console.log(data);
+
+  const satisfactionArray = [3, 4, 5, 6, 7, 8];
 
   const uploader = Uploader({
     apiKey: 'free', // Get production API keys from Upload.io
@@ -64,6 +132,8 @@ export default function Form() {
     dispatch(changeColor(debounceValue));
   }, [debounceValue, dispatch]);
 
+  let coverPhoto: string[] = [];
+
   let callingCode = '';
   const currentCountry = data.find((obj) => obj.name === country);
   if (currentCountry) {
@@ -71,7 +141,7 @@ export default function Form() {
   }
 
   return (
-    <form className="space-y-8 divide-y divide-gray-200">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 divide-y divide-gray-200">
       <div className="space-y-8 divide-y divide-gray-200 sm:space-y-5">
         {openModal && <PhotoModal open={openModal} setOpen={setOpenModal} setPhoto={setPhoto} />}
         <div className="space-y-6 sm:space-y-5">
@@ -87,15 +157,21 @@ export default function Form() {
                 Username
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <div className="flex max-w-lg rounded-md shadow-sm">
+                <div
+                  className={`flex max-w-lg flex-col rounded-md ${
+                    errors.username?.message ? 'shadow-none' : 'shadow-sm'
+                  }`}
+                >
                   <input
+                    {...register('username')}
                     type="text"
-                    name="username"
                     id="username"
                     autoComplete="username"
-                    required
                     className="block w-full min-w-0 flex-1  rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
+                  {errors.username?.message && (
+                    <p className="mt-1  text-xs font-medium tracking-wide  text-red-500">{errors.username?.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -106,11 +182,10 @@ export default function Form() {
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <div className="relative max-w-lg rounded-md shadow-sm">
                   <input
+                    {...register('password')}
                     type={passwordVisible ? 'text' : 'password'}
-                    name="password"
                     id="password"
                     autoComplete="password"
-                    required
                     className="block w-full min-w-0 flex-1 rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
                   <div
@@ -118,9 +193,9 @@ export default function Form() {
                     onClick={togglePasswordVisible}
                   >
                     {!passwordVisible ? (
-                      <EyeSlashIcon className="h-5 w-5 text-primary-900" />
+                      <EyeSlashIcon className="text-primary-900 h-5 w-5" />
                     ) : (
-                      <EyeIcon className="h-5 w-5 text-primary-900" />
+                      <EyeIcon className="text-primary-900 h-5 w-5" />
                     )}
                   </div>
                 </div>
@@ -128,7 +203,6 @@ export default function Form() {
             </div>
           </div>
         </div>
-
         <div className="space-y-6 pt-8 sm:space-y-5 sm:pt-10">
           <div>
             <h3 className="text-lg font-medium leading-6 text-gray-900">Profile</h3>
@@ -144,6 +218,7 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <textarea
+                  {...register('about')}
                   id="about"
                   name="about"
                   rows={3}
@@ -159,12 +234,13 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <div className="flex items-center">
-                  <div className="inline-block relative h-12 w-12 overflow-hidden rounded-full">
+                  <div className="relative inline-block h-12 w-12 overflow-hidden rounded-full">
                     <input
+                      {...register('color')}
                       type="color"
                       value={color}
                       onChange={(e) => setColor(e.target.value)}
-                      className="block absolute rounded-full -top-2 -right-2 border-none h-16 w-16 p-0 m-0"
+                      className="absolute -top-2 -right-2 m-0 block h-16 w-16 rounded-full border-none p-0"
                     />
                   </div>
                 </div>
@@ -179,7 +255,7 @@ export default function Form() {
                 <div className="flex items-center">
                   <span className="h-fit w-16 overflow-hidden rounded-full bg-gray-100">
                     {photo ? (
-                      <img alt={`${photo}`} src={photo} />
+                      <img {...register('photo', { value: photo })} alt={`${photo}`} src={photo} />
                     ) : (
                       <svg className="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -198,20 +274,20 @@ export default function Form() {
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
-              <label htmlFor="cover-photo" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+              <label htmlFor="coverPhoto" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
                 Cover photo
               </label>
               <UploadDropzone
+                {...register('cover', { value: coverPhoto })}
                 uploader={uploader}
                 options={options}
-                onUpdate={(files) => console.log(files)}
+                onUpdate={(files) => coverPhoto.push(files[0].fileUrl)}
                 width="200px"
                 height="200px"
               />
             </div>
           </div>
         </div>
-
         <div className="space-y-6 pt-8 sm:space-y-5 sm:pt-10">
           <div>
             <h3 className="text-lg font-medium leading-6 text-gray-900">Personal Information</h3>
@@ -224,8 +300,8 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('firstName')}
                   type="text"
-                  name="first-name"
                   id="first-name"
                   autoComplete="given-name"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
@@ -239,8 +315,8 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('lastName')}
                   type="text"
-                  name="last-name"
                   id="last-name"
                   autoComplete="family-name"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
@@ -254,11 +330,11 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('email')}
                   id="email"
-                  name="email"
                   type="email"
                   autoComplete="email"
-                  className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -269,10 +345,10 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('birthday')}
                   id="birthday"
-                  name="birthday"
                   type="date"
-                  className="block w-fill max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -283,10 +359,10 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <select
+                  {...register('country')}
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   id="country"
-                  name="country"
                   autoComplete="country-name"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 >
@@ -303,15 +379,30 @@ export default function Form() {
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
                 Phone number
               </label>
-              <div className="mt-1 sm:col-span-2 sm:mt-0 flex">
-                <div className=" bg-gray-300 w-12 flex justify-center items-center rounded-l-md border-gray-300 shadow-sm  sm:max-w-xs sm:text-sm">
+              <div className="mt-1 flex sm:col-span-2 sm:mt-0">
+                <div className="inline-flex w-14 items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">
                   +{callingCode}
                 </div>
                 <input
+                  {...register('phone')}
                   type="tel"
-                  name="phone"
                   id="phone"
-                  className="block w-full max-w-lg rounded-r-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
+                  className="block w-full max-w-lg rounded-r-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-[266px] sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="url" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+                Portfolio page
+              </label>
+              <div className="mt-1 sm:col-span-2 sm:mt-0">
+                <input
+                  {...register('url')}
+                  type="url"
+                  id="url"
+                  placeholder="https://example.com"
+                  className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -322,11 +413,11 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('streetAddress')}
                   type="text"
-                  name="street-address"
                   id="street-address"
                   autoComplete="street-address"
-                  className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full max-w-lg  rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -337,8 +428,8 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('city')}
                   type="text"
-                  name="city"
                   id="city"
                   autoComplete="address-level2"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
@@ -352,8 +443,8 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('region')}
                   type="text"
-                  name="region"
                   id="region"
                   autoComplete="address-level1"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
@@ -367,8 +458,8 @@ export default function Form() {
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
+                  {...register('postalCode')}
                   type="text"
-                  name="postal-code"
                   id="postal-code"
                   autoComplete="postal-code"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
@@ -378,14 +469,14 @@ export default function Form() {
           </div>
         </div>
 
-        <div className="space-y-6 divide-y divide-gray-200 pt-8 sm:space-y-5 sm:pt-10">
+        <div className="space-y-6 divide-gray-200  pt-8 sm:space-y-5 sm:divide-y  sm:pt-10">
           <div>
             <h3 className="text-lg font-medium leading-6 text-gray-900">Notifications</h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
               We'll always let you know about important changes, but you pick what else you want to hear about.
             </p>
           </div>
-          <div className="space-y-6 divide-y divide-gray-200 sm:space-y-5">
+          <div className="space-y-6 sm:space-y-5">
             <div className="pt-6 sm:pt-5">
               <div role="group" aria-labelledby="label-email">
                 <div className="sm:grid sm:grid-cols-3 sm:items-baseline sm:gap-4">
@@ -399,8 +490,8 @@ export default function Form() {
                       <div className="relative flex items-start">
                         <div className="flex h-5 items-center">
                           <input
+                            {...register('comments')}
                             id="comments"
-                            name="comments"
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
@@ -415,8 +506,8 @@ export default function Form() {
                       <div className="relative flex items-start">
                         <div className="flex h-5 items-center">
                           <input
+                            {...register('candidates')}
                             id="candidates"
-                            name="candidates"
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
@@ -431,8 +522,8 @@ export default function Form() {
                       <div className="relative flex items-start">
                         <div className="flex h-5 items-center">
                           <input
+                            {...register('offers')}
                             id="offers"
-                            name="offers"
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
@@ -466,9 +557,10 @@ export default function Form() {
                       <div className="mt-4 space-y-4">
                         <div className="flex items-center">
                           <input
+                            {...register('pushNotifications')}
                             id="push-everything"
-                            name="push-notifications"
                             type="radio"
+                            value="push-everything"
                             className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
                           <label htmlFor="push-everything" className="ml-3 block text-sm font-medium text-gray-700">
@@ -477,9 +569,10 @@ export default function Form() {
                         </div>
                         <div className="flex items-center">
                           <input
+                            {...register('pushNotifications')}
                             id="push-email"
-                            name="push-notifications"
                             type="radio"
+                            value="push-email"
                             className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
                           <label htmlFor="push-email" className="ml-3 block text-sm font-medium text-gray-700">
@@ -488,9 +581,10 @@ export default function Form() {
                         </div>
                         <div className="flex items-center">
                           <input
+                            {...register('pushNotifications')}
                             id="push-nothing"
-                            name="push-notifications"
                             type="radio"
+                            value="push-nothing"
                             className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
                           <label htmlFor="push-nothing" className="ml-3 block text-sm font-medium text-gray-700">
@@ -502,6 +596,49 @@ export default function Form() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-6  pt-8 sm:space-y-5 sm:pt-10">
+          <div>
+            <h3 className="text-lg font-medium leading-6 text-gray-900">Feedback</h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              Data will be used to gather information about a user's experience with a product.
+            </p>
+          </div>
+          <div className="space-y-6 sm:space-y-5">
+            <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+              <label htmlFor="satisfaction" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+                Satisfaction with form styling
+              </label>
+              <div className="flex w-full max-w-lg flex-col space-y-2 p-2 sm:max-w-xs">
+                <input {...register('rating')} type="range" className="w-full" min="3" max="8" step="1" />
+                <ul className="flex w-full justify-between px-2">
+                  {satisfactionArray.map((rating) => (
+                    <li key={rating} className="relative flex justify-center">
+                      <span className="absolute text-sm">{rating}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
+            <label htmlFor="experience" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
+              Overall experience
+            </label>
+            <div className="mt-1 sm:col-span-2 sm:mt-0">
+              <input
+                {...register('experience')}
+                type="number"
+                name="experience"
+                id="experience"
+                min="5"
+                max="13"
+                placeholder="5 to 13"
+                className="block w-fit max-w-lg  rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
+              />
             </div>
           </div>
         </div>
