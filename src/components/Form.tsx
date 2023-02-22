@@ -3,6 +3,7 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAppDispatch } from '../app/hook';
 import { changeColor } from '../redux/colorSlice';
 import PhotoModal from './PhotoModal';
+import ResultModal from './ResultModal';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,56 +16,39 @@ export interface Country {
   callingCodes: [string];
 }
 
-// interface FormInput {
-//   username: string;
-//   password: string;
-//   profile: { about: string; color: string; photo: string; cover: string[] };
-//   personalInformation: {
-//     firstName: string;
-//     lastName: string;
-//     email: string;
-//     birthday: string;
-//     country: string;
-//     phone: string;
-//     url: string;
-//     streetAddress: string;
-//     city: string;
-//     region: string;
-//     postalCode: string;
-//   };
-//   notifications: {
-//     comments: string;
-//     candidates: string;
-//     offers: string;
-//     pushNotifications: string;
-//   };
-//   feedback: { rating: string; experience: string };
-// }
-
 const schema = z.object({
-  username: z.string().max(5),
-  password: z.string(),
-  about: z.string(),
-  color: z.string(),
-  photo: z.string(),
-  cover: z.array(z.string()),
-  firstName: z.string(),
-  lastName: z.string(),
+  username: z
+    .string()
+    .min(3, { message: 'Username must contain at least 3 character(s)' })
+    .max(10, { message: 'Username cannot exceed 10 character(s)' }),
+  password: z
+    .string()
+    .min(8, { message: 'Password must contain at least 8 character(s)' })
+    .regex(new RegExp('.*[0-9].*'), { message: 'Password must contain at least one number' })
+    .regex(new RegExp('.*[`~<>?,./!@#$%^&*()\\-_+="\'|{}\\[\\];:\\\\].*'), {
+      message: 'Password must contain at least one symbol',
+    }),
+  about: z.string().min(1, { message: 'Write a few sentences about yourself.' }),
+  color: z.string().optional(),
+  photo: z.string().optional(),
+  cover: z.array(z.string()).optional(),
+  firstName: z.string().min(1, { message: 'Enter your first name' }),
+  lastName: z.string().min(1, { message: 'Enter your last name' }),
   email: z.string().email(),
-  birthday: z.string(),
+  birthday: z.string().min(1, { message: 'Enter your birthday' }),
   country: z.string(),
-  phone: z.string(),
-  url: z.string().url(),
-  streetAddress: z.string(),
-  city: z.string(),
-  region: z.string(),
-  postalCode: z.string(),
+  phone: z.string().min(8, { message: 'Enter your phone number' }).max(8, { message: 'Enter valid phone number' }),
+  url: z.string().optional(),
+  streetAddress: z.string().optional(),
+  city: z.string().optional(),
+  region: z.string().optional(),
+  postalCode: z.string().optional(),
   comments: z.boolean().optional(),
   candidates: z.boolean().optional(),
   offers: z.boolean().optional(),
   pushNotifications: z.string(),
-  rating: z.string(),
-  experience: z.string(),
+  rating: z.string().optional(),
+  experience: z.string().optional(),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -73,8 +57,11 @@ export default function Form() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [color, setColor] = useState('#1F2937');
   const [photo, setPhoto] = useState('');
-  const [openModal, setOpenModal] = useState(false);
+  const [openPhotoModal, setOpenPhotoModal] = useState(false);
+  const [openResultModal, setOpenResultModal] = useState(false);
+  const [result, setResult] = useState<any>('test');
   const [country, setCountry] = useState('Afghanistan');
+  const [charCount, setCharCount] = useState(0);
   const dispatch = useAppDispatch();
 
   const {
@@ -84,7 +71,11 @@ export default function Form() {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
-  const onSubmit: SubmitHandler<FormData> = (data) => console.log(data);
+  const onSubmit: SubmitHandler<FormData> = (data) => {
+    setResult(JSON.stringify(data, null, 3));
+    setOpenResultModal(true);
+    return console.log(data);
+  };
 
   const satisfactionArray = [3, 4, 5, 6, 7, 8];
 
@@ -143,7 +134,8 @@ export default function Form() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 divide-y divide-gray-200">
       <div className="space-y-8 divide-y divide-gray-200 sm:space-y-5">
-        {openModal && <PhotoModal open={openModal} setOpen={setOpenModal} setPhoto={setPhoto} />}
+        {openPhotoModal && <PhotoModal open={openPhotoModal} setOpen={setOpenPhotoModal} setPhoto={setPhoto} />}
+        {openResultModal && <ResultModal open={openResultModal} setOpen={setOpenResultModal} result={result} />}
         <div className="space-y-6 sm:space-y-5">
           <div>
             <h3 className="text-lg font-medium leading-6 text-gray-900">Account information</h3>
@@ -154,14 +146,10 @@ export default function Form() {
           <div className="space-y-6 sm:space-y-5">
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Username
+                Username<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <div
-                  className={`flex max-w-lg flex-col rounded-md ${
-                    errors.username?.message ? 'shadow-none' : 'shadow-sm'
-                  }`}
-                >
+                <div className="flex max-w-lg flex-col rounded-md">
                   <input
                     {...register('username')}
                     type="text"
@@ -169,18 +157,19 @@ export default function Form() {
                     autoComplete="username"
                     className="block w-full min-w-0 flex-1  rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
+
                   {errors.username?.message && (
-                    <p className="mt-1  text-xs font-medium tracking-wide  text-red-500">{errors.username?.message}</p>
+                    <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.username?.message}</p>
                   )}
                 </div>
               </div>
             </div>
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Password
+                Password<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <div className="relative max-w-lg rounded-md shadow-sm">
+                <div className="relative max-w-lg rounded-md ">
                   <input
                     {...register('password')}
                     type={passwordVisible ? 'text' : 'password'}
@@ -188,6 +177,7 @@ export default function Form() {
                     autoComplete="password"
                     className="block w-full min-w-0 flex-1 rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
+
                   <div
                     className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3"
                     onClick={togglePasswordVisible}
@@ -199,6 +189,14 @@ export default function Form() {
                     )}
                   </div>
                 </div>
+
+                {errors.password?.message ? (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.password?.message}</p>
+                ) : (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Use 8 or more characters with a mix of letters, numbers & symbols
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -214,18 +212,26 @@ export default function Form() {
           <div className="space-y-6 sm:space-y-5">
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="about" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                About
+                About<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <textarea
                   {...register('about')}
+                  onChange={(e) => setCharCount(e.target.value.length)}
                   id="about"
                   name="about"
-                  rows={3}
+                  rows={5}
+                  maxLength={300}
                   className="block w-full max-w-lg rounded-md border-gray-300  shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   defaultValue={''}
                 />
-                <p className="mt-2 text-sm text-gray-500">Write a few sentences about yourself.</p>
+                {errors.about?.message ? (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">
+                    {errors.about?.message} {charCount}/300
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-gray-500">Write a few sentences about yourself. {charCount}/300</p>
+                )}
               </div>
             </div>
             <div className="sm:grid sm:grid-cols-3 sm:items-center sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
@@ -263,7 +269,7 @@ export default function Form() {
                     )}
                   </span>
                   <button
-                    onClick={() => setOpenModal(true)}
+                    onClick={() => setOpenPhotoModal(true)}
                     type="button"
                     className="ml-5 rounded-md border border-gray-300 bg-white py-2 px-3 text-sm font-medium leading-4 text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   >
@@ -296,7 +302,7 @@ export default function Form() {
           <div className="space-y-6 sm:space-y-5">
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="first-name" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                First name
+                First name<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
@@ -306,12 +312,15 @@ export default function Form() {
                   autoComplete="given-name"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
+                {errors.firstName?.message && (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.firstName?.message}</p>
+                )}
               </div>
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="last-name" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Last name
+                Last name<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
@@ -321,12 +330,15 @@ export default function Form() {
                   autoComplete="family-name"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
+                {errors.lastName?.message && (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.lastName?.message}</p>
+                )}
               </div>
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Email address
+                Email address<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
@@ -336,12 +348,15 @@ export default function Form() {
                   autoComplete="email"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
+                {errors.email?.message && (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.email?.message}</p>
+                )}
               </div>
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="birthday" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Birthday
+                Birthday<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <input
@@ -350,12 +365,15 @@ export default function Form() {
                   type="date"
                   className="block w-full max-w-lg rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs sm:text-sm"
                 />
+                {errors.birthday?.message && (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.birthday?.message}</p>
+                )}
               </div>
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="country" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Country
+                Country<span className="text-red-500">*</span>
               </label>
               <div className="mt-1 sm:col-span-2 sm:mt-0">
                 <select
@@ -372,23 +390,32 @@ export default function Form() {
                     </option>
                   ))}
                 </select>
+                {errors.country?.message && (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.country?.message}</p>
+                )}
               </div>
             </div>
 
             <div className="sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Phone number
+                Phone number<span className="text-red-500">*</span>
               </label>
-              <div className="mt-1 flex sm:col-span-2 sm:mt-0">
-                <div className="inline-flex w-14 items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">
-                  +{callingCode}
+              <div className="flex flex-col">
+                <div className="mt-1 flex sm:col-span-2 sm:mt-0">
+                  <div className="inline-flex w-14 items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">
+                    +{callingCode}
+                  </div>
+
+                  <input
+                    {...register('phone')}
+                    type="tel"
+                    id="phone"
+                    className="block w-full max-w-lg rounded-r-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-[266px] sm:text-sm"
+                  />
                 </div>
-                <input
-                  {...register('phone')}
-                  type="tel"
-                  id="phone"
-                  className="block w-full max-w-lg rounded-r-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-[266px] sm:text-sm"
-                />
+                {errors.phone?.message && (
+                  <p className="mt-2 text-sm font-medium tracking-wide  text-red-500">{errors.phone?.message}</p>
+                )}
               </div>
             </div>
 
@@ -548,7 +575,7 @@ export default function Form() {
                       className="text-base font-medium text-gray-900 sm:text-sm sm:text-gray-700"
                       id="label-notifications"
                     >
-                      Push Notifications
+                      Push Notifications<span className="text-red-500">*</span>
                     </div>
                   </div>
                   <div className="sm:col-span-2">
@@ -644,7 +671,11 @@ export default function Form() {
         </div>
       </div>
 
-      <div className="pt-5">
+      <div className="pt-2">
+        <p className="text-sm">
+          <span className="text-red-500">*</span>
+          indicates a required field.
+        </p>
         <div className="flex justify-end">
           <button
             type="button"

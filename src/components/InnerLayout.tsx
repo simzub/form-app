@@ -5,10 +5,7 @@ import { useAppSelector } from '../app/hook';
 
 import { RootState } from '../app/store';
 
-const navigation = [
-  { name: 'React Hook Form', href: '#', current: true },
-  { name: 'Regular Form', href: '#', current: false },
-];
+const navigation = [{ name: 'React Hook Form', href: '#', current: true }];
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
